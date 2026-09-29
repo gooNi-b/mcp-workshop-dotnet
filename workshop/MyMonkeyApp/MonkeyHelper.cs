@@ -1,75 +1,54 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
 namespace MyMonkeyApp;
 
-/// <summary>
-/// 원숭이 데이터 관리를 위한 헬퍼 클래스
-/// </summary>
+/// <summary>원숭이 데이터를 조회하고 무작위로 선택합니다.</summary>
 public static class MonkeyHelper
 {
-    private static List<Monkey> monkeys = new();
-    private static int randomPickCount = 0;
-    private static readonly object lockObj = new();
+    private static Monkey[] monkeys = [];
+    private static int randomPickCount;
+    private static readonly object Sync = new();
 
-    /// <summary>
-    /// MCP 서버에서 원숭이 데이터를 비동기로 로드합니다.
-    /// </summary>
-    public static async Task LoadMonkeysAsync(IEnumerable<Monkey> source)
+    /// <summary>원숭이 목록을 교체하고 선택 횟수를 초기화합니다.</summary>
+    /// <exception cref="ArgumentException">이름이 없는 항목이 포함된 경우</exception>
+    public static void LoadMonkeys(IEnumerable<Monkey> source)
     {
-        lock (lockObj)
+        ArgumentNullException.ThrowIfNull(source);
+        var items = source.ToArray();
+        if (items.Any(monkey => monkey is null || string.IsNullOrWhiteSpace(monkey.Name)))
+            throw new ArgumentException("모든 원숭이에 이름이 있어야 합니다.", nameof(source));
+        lock (Sync)
         {
-            monkeys = source.ToList();
+            monkeys = items;
+            randomPickCount = 0;
         }
     }
 
-    /// <summary>
-    /// 모든 원숭이 목록을 반환합니다.
-    /// </summary>
+    /// <summary>현재 목록의 읽기 전용 복사본을 반환합니다.</summary>
     public static IReadOnlyList<Monkey> GetMonkeys()
     {
-        lock (lockObj)
-        {
-            return monkeys.AsReadOnly();
-        }
+        lock (Sync) return Array.AsReadOnly((Monkey[])monkeys.Clone());
     }
 
-    /// <summary>
-    /// 이름으로 특정 원숭이 정보를 반환합니다.
-    /// </summary>
-    public static Monkey? GetMonkeyByName(string name)
+    /// <summary>공백과 대소문자를 무시하고 이름을 검색합니다.</summary>
+    public static Monkey? GetMonkeyByName(string? name)
     {
-        lock (lockObj)
-        {
-            return monkeys.FirstOrDefault(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        }
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        lock (Sync) return Array.Find(monkeys, monkey => string.Equals(monkey.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>
-    /// 무작위 원숭이를 반환하고, 선택 횟수를 추적합니다.
-    /// </summary>
+    /// <summary>무작위 항목을 선택합니다. 목록이 비었으면 null을 반환합니다.</summary>
     public static Monkey? GetRandomMonkey()
     {
-        lock (lockObj)
+        lock (Sync)
         {
-            if (monkeys.Count == 0) return null;
-            var random = new Random();
-            var selected = monkeys[random.Next(monkeys.Count)];
+            if (monkeys.Length == 0) return null;
             randomPickCount++;
-            return selected;
+            return monkeys[Random.Shared.Next(monkeys.Length)];
         }
     }
 
-    /// <summary>
-    /// 무작위 선택된 횟수를 반환합니다.
-    /// </summary>
+    /// <summary>현재 목록에서 무작위로 선택한 횟수를 반환합니다.</summary>
     public static int GetRandomPickCount()
     {
-        lock (lockObj)
-        {
-            return randomPickCount;
-        }
+        lock (Sync) return randomPickCount;
     }
 }
