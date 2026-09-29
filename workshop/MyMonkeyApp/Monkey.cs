@@ -8,12 +8,12 @@ public class Monkey
     /// <summary>
     /// 원숭이 이름
     /// </summary>
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     /// <summary>
     /// 서식지
     /// </summary>
-    public string Location { get; set; }
+    public string Location { get; set; } = string.Empty;
 
     /// <summary>
     /// 개체수
@@ -23,12 +23,12 @@ public class Monkey
     /// <summary>
     /// 설명
     /// </summary>
-    public string Details { get; set; }
+    public string Details { get; set; } = string.Empty;
 
     /// <summary>
     /// 이미지 URL
     /// </summary>
-    public string Image { get; set; }
+    public string Image { get; set; } = string.Empty;
 
     /// <summary>
     /// 위도
